@@ -23,23 +23,7 @@ public class StudentService {
     private StudentCourseRepository studentCourseRepository;
 
     public List<StudentCourse> getAllStudentsWithCourses() {
-        List<Student> students = studentRepository.findAll();
-
-        Map<Long, List<StudentCourse>> coursesMap = students.stream()
-                .collect(Collectors.toMap(
-                        Student::getId,
-                        student -> studentCourseRepository.findByStudentId(student.getId())
-                ));
-
-        return students.stream()
-                .flatMap(student -> coursesMap.get(student.getId()).stream()
-                        .map(sc -> {
-                            StudentCourse newSc = new StudentCourse();
-                            newSc.setStudent(student);
-                            newSc.setCourse(sc.getCourse());
-                            return newSc;
-                        }))
-                .collect(Collectors.toList());
+        return studentCourseRepository.findAll();
     }
 
     public Optional<Student> findStudentWithHighestGpa() {
