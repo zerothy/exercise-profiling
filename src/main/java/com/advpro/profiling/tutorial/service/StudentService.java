@@ -7,9 +7,8 @@ import com.advpro.profiling.tutorial.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author muhammad.khadafi
@@ -25,39 +24,33 @@ public class StudentService {
 
     public List<StudentCourse> getAllStudentsWithCourses() {
         List<Student> students = studentRepository.findAll();
-        List<StudentCourse> studentCourses = new ArrayList<>();
-        for (Student student : students) {
-            List<StudentCourse> studentCoursesByStudent = studentCourseRepository.findByStudentId(student.getId());
-            for (StudentCourse studentCourseByStudent : studentCoursesByStudent) {
-                StudentCourse studentCourse = new StudentCourse();
-                studentCourse.setStudent(student);
-                studentCourse.setCourse(studentCourseByStudent.getCourse());
-                studentCourses.add(studentCourse);
-            }
-        }
-        return studentCourses;
+
+        Map<Long, List<StudentCourse>> coursesMap = students.stream()
+                .collect(Collectors.toMap(
+                        Student::getId,
+                        student -> studentCourseRepository.findByStudentId(student.getId())
+                ));
+
+        return students.stream()
+                .flatMap(student -> coursesMap.get(student.getId()).stream()
+                        .map(sc -> {
+                            StudentCourse newSc = new StudentCourse();
+                            newSc.setStudent(student);
+                            newSc.setCourse(sc.getCourse());
+                            return newSc;
+                        }))
+                .collect(Collectors.toList());
     }
 
     public Optional<Student> findStudentWithHighestGpa() {
-        List<Student> students = studentRepository.findAll();
-        Student highestGpaStudent = null;
-        double highestGpa = 0.0;
-        for (Student student : students) {
-            if (student.getGpa() > highestGpa) {
-                highestGpa = student.getGpa();
-                highestGpaStudent = student;
-            }
-        }
-        return Optional.ofNullable(highestGpaStudent);
+        return studentRepository.findAll().stream()
+                .max(Comparator.comparingDouble(Student::getGpa));
     }
 
     public String joinStudentNames() {
-        List<Student> students = studentRepository.findAll();
-        String result = "";
-        for (Student student : students) {
-            result += student.getName() + ", ";
-        }
-        return result.substring(0, result.length() - 2);
+        return studentRepository.findAll().stream()
+                .map(Student::getName)
+                .collect(Collectors.joining(", "));
     }
 }
 
